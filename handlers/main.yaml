@@ -1,0 +1,6 @@
+---
+- name: restart debian service
+  systemd:
+    name: 'buildkite-agent{% if buildkite_agent_queue != "default" %}-{{ buildkite_agent_queue }}{% endif %}'
+    daemon_reload: yes
+    state: restarted

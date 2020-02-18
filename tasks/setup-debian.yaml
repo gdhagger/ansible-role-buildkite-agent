@@ -1,0 +1,51 @@
+- name: Add Buildkite Repo Key
+  become: yes
+  apt_key:
+    keyserver: keyserver.ubuntu.com
+    id: 32A37959C2FA5C3C99EFBC32A79206696452D198
+
+- name: Add Buildkite Repository
+  become: yes
+  apt_repository:
+    repo: deb https://apt.buildkite.com/buildkite-agent stable main
+    state: present
+    filename: buildkite-agent
+
+- name: Install/Update buildkite-agent
+  become: yes
+  apt:
+    name: buildkite-agent
+    state: latest
+    update_cache: yes
+
+- name: Remove default systemd service definitions
+  become: yes
+  file:
+    path: "/lib/systemd/system/{{ item }}"
+    state: absent
+  with_items:
+    - buildkite-agent.service
+    - buildkite-agent@.service
+
+- name: Install buildkite-agent configuration
+  become: yes
+  template:
+    src: buildkite-agent.cfg.j2
+    dest: '/etc/buildkite-agent/buildkite-agent{% if buildkite_agent_queue != "default" %}-{{ buildkite_agent_queue }}{% endif %}.cfg'
+  notify:
+    - restart debian service
+
+- name: Install buildkite-agent service
+  become: yes
+  template:
+    src: buildkite-agent.service.j2
+    dest: '/etc/systemd/system/buildkite-agent{% if buildkite_agent_queue != "default" %}-{{ buildkite_agent_queue }}{% endif %}.service'
+  notify:
+    - restart debian service
+
+- name: Enable buildkite-agent service
+  systemd:
+    name: 'buildkite-agent{% if buildkite_agent_queue != "default" %}-{{ buildkite_agent_queue }}{% endif %}'
+    daemon_reload: yes
+    enabled: yes
+    state: started

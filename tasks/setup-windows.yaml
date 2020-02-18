@@ -1,0 +1,17 @@
+# - name: Install buildkite agent
+#   win_shell: |
+#     $env:buildkiteAgentToken = "{{ buildkite_agent_token }}"
+#     Set-ExecutionPolicy Bypass -Scope Process -Force
+#     iex ((New-Object System.Net.WebClient).DownloadString('https://raw.githubusercontent.com/buildkite/agent/master/install.ps1'))
+#   args:
+#     creates: C:\buildkite-agent
+- win_get_url:
+    url: "https://github.com/buildkite/agent/releases/download/v{{ buildkite_agent_version }}/buildkite-agent-windows-amd64-{{ buildkite_agent_version }}.zip"
+    dest: "%TEMP%\\buildkite-agent.zip"
+
+- win_copy:
+    dest: "%USERPROFILE%/.ssh/id_rsa"
+    content: "{{ buildkite_agent_ssh_private_key }}"
+
+- include_tasks: windows-service.yaml
+  when: buildkite_agent_windows_service == true
